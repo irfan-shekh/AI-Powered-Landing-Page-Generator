@@ -21,7 +21,4 @@ export const auth = betterAuth({
     emailAndPassword: {
         enabled: true,
     },
-    advanced: {
-        trustHost: true,
-    },
 });
