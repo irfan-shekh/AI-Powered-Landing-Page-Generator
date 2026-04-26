@@ -9,8 +9,8 @@ const connectionString = process.env.DATABASE_URL;
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
 export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({ adapter: new PrismaPg(new Pool({ connectionString })) });
+    globalForPrisma.prisma ||
+    new PrismaClient({ adapter: new PrismaPg(new Pool({ connectionString })) });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
@@ -21,12 +21,10 @@ export const auth = betterAuth({
     emailAndPassword: {
         enabled: true,
     },
-    secret: process.env.BETTER_AUTH_SECRET,
-    trustedProxyHeaders: process.env.NODE_ENV === "production",
+    trustedProxyHeaders: true,
     trustedOrigins: [
         process.env.BETTER_AUTH_URL?.replace(/\/$/, "") as string,
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
+        "https://your-actual-production-url.onrender.com" // Add this explicitly if the above isn't picking it up
     ].filter(Boolean),
     baseURL: process.env.BETTER_AUTH_URL?.replace(/\/$/, ""),
 });
