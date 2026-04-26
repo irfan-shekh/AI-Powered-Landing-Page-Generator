@@ -21,9 +21,4 @@ export const auth = betterAuth({
     emailAndPassword: {
         enabled: true,
     },
-    trustedProxyHeaders: true,
-    trustedOrigins: [
-        process.env.BETTER_AUTH_URL?.replace(/\/$/, "") as string,
-    ].filter(Boolean),
-    baseURL: process.env.BETTER_AUTH_URL?.replace(/\/$/, ""),
 });
