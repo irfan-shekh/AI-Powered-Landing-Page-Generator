@@ -5,7 +5,7 @@ A full-stack Next.js application that uses AI to generate high-converting landin
 ## Tech Stack
 - Frontend: Next.js (App Router), React, Tailwind CSS
 - Backend: Next.js API Routes, Neon DB (PostgreSQL), Prisma ORM
-- AI Integration: Vercel AI SDK, Google Gemini (`gemini-2.5-pro`)
+- AI Integration: Vercel AI SDK, Google Gemini (gemini-2.5-flash) or (gemini-3-flash-preview)
 - Authentication: Better Auth
 
 ## Local Development Setup

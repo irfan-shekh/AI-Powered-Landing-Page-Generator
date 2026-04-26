@@ -1,60 +1,55 @@
-import { generateObject } from 'ai';
+import { streamText } from 'ai';
 import { google } from '@ai-sdk/google';
-import { z } from 'zod';
 import { NextResponse } from 'next/server';
 
-export const maxDuration = 60; // Allow more time for generation
+export const maxDuration = 120;
+
+const SYSTEM_PROMPT = `You are a world-class Frontend Engineer and UI/UX Designer.
+Your task is to generate a single, complete, production-ready HTML file for a landing page based on the user's request.
+
+Rules:
+1. Return ONLY raw HTML code. Do not use markdown code blocks (e.g., \`\`\`html). Do not add explanations.
+2. The HTML must be a single file containing:
+   - All necessary CSS styles (use Tailwind CSS via CDN: <script src="https://cdn.tailwindcss.com"></script>).
+   - All necessary JavaScript (embedded in <script> tags at the end of the body).
+   - Meaningful, marketing-oriented content.
+3. Design requirements:
+   - Modern, clean, and responsive layout.
+   - Use 'Inter' font from Google Fonts.
+   - Use https://picsum.photos/ for placeholder images.
+   - Use FontAwesome (via CDN) or SVG icons for icons.
+   - Dark mode or Light mode should be based on the user's request (default to dark mode if unspecified).
+4. If 'Current HTML' is provided, modify it according to the 'User Request'.`;
 
 export async function POST(req: Request) {
   try {
-    const { businessName, industry, targetAudience, goal } = await req.json();
+    const { prompt, currentHtml } = await req.json();
 
-    if (!businessName || !industry || !targetAudience || !goal) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!prompt) {
+      return NextResponse.json(
+        { error: 'Prompt is required' },
+        { status: 400 }
+      );
     }
 
-    const { object } = await generateObject({
-      model: google('gemini-1.5-pro'),
-      schema: z.object({
-        hero: z.object({
-          headline: z.string(),
-          subheadline: z.string(),
-          ctaText: z.string(),
-        }),
-        features: z.array(z.object({
-          title: z.string(),
-          description: z.string(),
-          iconName: z.enum(['Zap', 'Shield', 'Globe', 'Rocket', 'Star', 'CheckCircle', 'TrendingUp', 'Users']),
-        })).length(3),
-        testimonials: z.array(z.object({
-          name: z.string(),
-          role: z.string(),
-          content: z.string(),
-        })),
-        pricing: z.array(z.object({
-          plan: z.string(),
-          price: z.string(),
-          features: z.array(z.string()),
-          isPopular: z.boolean(),
-        })),
-        cta: z.object({
-          headline: z.string(),
-          subheadline: z.string(),
-          buttonText: z.string(),
-        }),
-      }),
-      prompt: `Generate a high-converting landing page for:
-        * Business Name: ${businessName}
-        * Industry: ${industry}
-        * Target Audience: ${targetAudience}
-        * Goal: ${goal}
+    const userContent = currentHtml
+      ? `User Request: "${prompt}"\n\nCurrent HTML Code:\n${currentHtml}`
+      : `Create a complete, single-file HTML landing page based on: "${prompt}". Make it look amazing.`;
 
-        Make the copy persuasive, modern, and startup-style. Use action-oriented language. The output must strictly follow the JSON schema.`,
+    const result = streamText({
+      model: google('gemini-3-flash-preview'),
+      system: SYSTEM_PROMPT,
+      prompt: userContent,
     });
 
-    return NextResponse.json(object);
-  } catch (error) {
-    console.error('Generation Error:', error);
-    return NextResponse.json({ error: 'Failed to generate landing page' }, { status: 500 });
+    return result.toTextStreamResponse();
+
+  } catch (error: any) {
+    console.error('Generation Error Detail:', error);
+    
+    return NextResponse.json(
+      { error: error.message || 'Failed to generate landing page' },
+      { status: 500 }
+    );
   }
 }

@@ -1,32 +1,31 @@
-datasource db {
-  provider = "postgresql"
-}
-
 generator client {
   provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
 }
 
 model User {
   id            String    @id @default(cuid())
   name          String
-  email         String
+  email         String    @unique
   emailVerified Boolean
   image         String?
   createdAt     DateTime
   updatedAt     DateTime
-  Session       Session[]
   Account       Account[]
-  Project       Project[]
   Page          Page[]
+  Project       Project[]
+  Session       Session[]
 
-  @@unique([email])
   @@map("user")
 }
 
 model Session {
   id        String   @id @default(cuid())
   expiresAt DateTime
-  token     String
+  token     String   @unique
   createdAt DateTime
   updatedAt DateTime
   ipAddress String?
@@ -34,7 +33,6 @@ model Session {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([token])
   @@map("session")
 }
 
@@ -43,7 +41,6 @@ model Account {
   accountId             String
   providerId            String
   userId                String
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessToken           String?
   refreshToken          String?
   idToken               String?
@@ -53,6 +50,7 @@ model Account {
   password              String?
   createdAt             DateTime
   updatedAt             DateTime
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("account")
 }
@@ -73,10 +71,10 @@ model Project {
   name        String
   description String?
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  pages       Page[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  pages       Page[]
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("project")
 }
@@ -84,13 +82,13 @@ model Project {
 model Page {
   id        String   @id @default(cuid())
   name      String
-  content   Json     // Stores the generated JSON structure
+  content   Json
   projectId String?
-  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("page")
 }
