@@ -22,4 +22,6 @@ export const auth = betterAuth({
         enabled: true,
     },
     trustedProxyHeaders: true,
+    trustedOrigins: [process.env.BETTER_AUTH_URL as string],
+    baseURL: process.env.BETTER_AUTH_URL,
 });
