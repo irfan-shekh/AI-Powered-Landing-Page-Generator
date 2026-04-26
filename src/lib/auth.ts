@@ -21,9 +21,12 @@ export const auth = betterAuth({
     emailAndPassword: {
         enabled: true,
     },
-    trustedProxyHeaders: true,
+    secret: process.env.BETTER_AUTH_SECRET,
+    trustedProxyHeaders: process.env.NODE_ENV === "production",
     trustedOrigins: [
         process.env.BETTER_AUTH_URL?.replace(/\/$/, "") as string,
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
     ].filter(Boolean),
     baseURL: process.env.BETTER_AUTH_URL?.replace(/\/$/, ""),
 });
