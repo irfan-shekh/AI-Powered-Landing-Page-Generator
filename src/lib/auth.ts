@@ -24,7 +24,7 @@ export const auth = betterAuth({
     trustedProxyHeaders: true,
     trustedOrigins: [
         process.env.BETTER_AUTH_URL?.replace(/\/$/, "") as string,
-        "https://your-actual-production-url.onrender.com" // Add this explicitly if the above isn't picking it up
+        "https://pageai-1mvn.onrender.com" // Add this explicitly if the above isn't picking it up
     ].filter(Boolean),
     baseURL: process.env.BETTER_AUTH_URL?.replace(/\/$/, ""),
 });
