@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { PrismaClient } from "@prisma/client";
+
 import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 
@@ -24,7 +25,6 @@ export const auth = betterAuth({
     trustedProxyHeaders: true,
     trustedOrigins: [
         process.env.BETTER_AUTH_URL?.replace(/\/$/, "") as string,
-        "https://pageai-1mvn.onrender.com" // Add this explicitly if the above isn't picking it up
     ].filter(Boolean),
     baseURL: process.env.BETTER_AUTH_URL?.replace(/\/$/, ""),
 });
