@@ -1,5 +1,4 @@
 import { prisma } from '@/lib/auth';
-import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
@@ -8,12 +7,22 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers()
-    });
+    const allHeaders = await headers();
+    let userId = allHeaders.get("x-user-id");
 
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Fallback if header is missing
+    if (!userId) {
+      const { auth } = await import("@/lib/auth");
+      const session = await auth.api.getSession({
+        headers: allHeaders,
+      });
+      if (session) {
+        userId = session.user.id;
+      }
+    }
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
@@ -27,7 +36,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Page not found' }, { status: 404 });
     }
 
-    if (page.userId !== session.user.id) {
+    if (page.userId !== userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -47,12 +56,22 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers()
-    });
+    const allHeaders = await headers();
+    let userId = allHeaders.get("x-user-id");
 
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Fallback if header is missing
+    if (!userId) {
+      const { auth } = await import("@/lib/auth");
+      const session = await auth.api.getSession({
+        headers: allHeaders,
+      });
+      if (session) {
+        userId = session.user.id;
+      }
+    }
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
@@ -71,7 +90,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Page not found' }, { status: 404 });
     }
 
-    if (page.userId !== session.user.id) {
+    if (page.userId !== userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

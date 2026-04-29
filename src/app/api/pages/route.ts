@@ -1,5 +1,4 @@
 import { prisma } from '@/lib/auth';
-import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
@@ -7,11 +6,21 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers()
-    });
+    const allHeaders = await headers();
+    let userId = allHeaders.get('x-user-id');
 
-    if (!session) {
+    // Fallback if header is missing
+    if (!userId) {
+      const { auth } = await import('@/lib/auth');
+      const session = await auth.api.getSession({
+        headers: allHeaders
+      });
+      if (session) {
+        userId = session.user.id;
+      }
+    }
+
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -21,7 +30,7 @@ export async function POST(req: Request) {
       data: {
         name,
         content,
-        userId: session.user.id,
+        userId,
       },
     });
 
@@ -34,17 +43,29 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers()
-    });
+    const allHeaders = await headers();
+    let userId = allHeaders.get('x-user-id');
+    console.log('API GET /api/pages - Header x-user-id:', userId);
+    
+    // Fallback if header is missing (e.g. proxy issues)
+    if (!userId) {
+      const { auth } = await import('@/lib/auth');
+      const session = await auth.api.getSession({
+        headers: allHeaders
+      });
+      if (session) {
+        userId = session.user.id;
+        console.log('API GET /api/pages - Fallback Session User:', userId);
+      }
+    }
 
-    if (!session) {
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const pages = await prisma.page.findMany({
       where: {
-        userId: session.user.id,
+        userId,
       },
       orderBy: {
         createdAt: 'desc',

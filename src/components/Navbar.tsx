@@ -8,9 +8,13 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
 export default function Navbar() {
-  // session is usually cached in memory by most auth providers after the first load
   const { data: session, isPending } = useSession();
   const router = useRouter();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -44,14 +48,14 @@ export default function Navbar() {
           {/* Nav links */}
           <nav className="flex items-center gap-3">
             <Link
-              href="/home"
+              href="/"
               className="px-4 py-1.5 text-sm font-semibold text-white hover:text-indigo-300 transition-colors"
             >
               Home
             </Link>
 
             <div className="flex items-center min-w-[100px] justify-end gap-3">
-              {isPending ? (
+              {!mounted || isPending ? (
                 /* Skeleton Loader: Matches the shape of the buttons to prevent jumping */
                 <div className="h-8 w-24 animate-pulse rounded-full bg-white/10" />
               ) : session ? (

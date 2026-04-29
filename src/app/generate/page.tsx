@@ -38,13 +38,6 @@ interface ChatMessage {
 
 type ViewMode = "preview" | "code";
 
-interface SavedPage {
-  id: string;
-  name: string;
-  content: string;
-  createdAt: string;
-}
-
 function GeneratePageInner() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -54,9 +47,7 @@ function GeneratePageInner() {
   const [projectName, setProjectName] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("preview");
   const [canvasMode, setCanvasMode] = useState<"desktop" | "mobile">("desktop");
-  const [history, setHistory] = useState<SavedPage[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const { data: session } = useSession();
@@ -66,22 +57,6 @@ function GeneratePageInner() {
     const nameFromQuery = searchParams.get("name");
     if (nameFromQuery) setProjectName(decodeURIComponent(nameFromQuery));
   }, [searchParams]);
-
-  /* ─── Load history ────────────────────────────────────── */
-  const fetchHistory = useCallback(async () => {
-    if (!session?.user) return;
-    setHistoryLoading(true);
-    try {
-      const res = await fetch("/api/pages");
-      if (res.ok) setHistory(await res.json());
-    } catch {
-      // ignore
-    } finally {
-      setHistoryLoading(false);
-    }
-  }, [session?.user]);
-
-  useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
   /* ─── Step 1: submit → directly generate ─────────────── */
   const handleSendClick = (e?: React.FormEvent) => {
@@ -99,10 +74,10 @@ function GeneratePageInner() {
     // Add user message to thread
     const userMsg: ChatMessage = { role: "user", content: finalPrompt, timestamp: Date.now() };
     setMessages(prev => [...prev, userMsg]);
-    
+
     setLoading(true);
     // We don't reset data here to allow iterative updates in preview
-    
+
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -116,7 +91,7 @@ function GeneratePageInner() {
       }
 
       setViewMode("preview");
-      setLoading(false); 
+      setLoading(false);
 
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
@@ -128,35 +103,35 @@ function GeneratePageInner() {
           if (done) break;
           const chunk = decoder.decode(value, { stream: true });
           fullHtml += chunk;
-          
+
           // Clean markdown blocks on the fly
           const cleaned = fullHtml
             .replace(/^```html\n?/, "")
             .replace(/\n?```$/, "")
             .replace(/```html/g, "")
             .replace(/```/g, "");
-            
+
           setData(cleaned);
         }
       }
 
       // Add AI success message
-      setMessages(prev => [...prev, { 
-        role: "ai", 
-        content: "I've updated the landing page for you.", 
-        timestamp: Date.now() 
+      setMessages(prev => [...prev, {
+        role: "ai",
+        content: "I've updated the landing page for you.",
+        timestamp: Date.now()
       }]);
-      
+
       toast.success("Page updated!");
       setPrompt(""); // Clear input after success
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Generation failed. Try again.";
       toast.error(message);
       setLoading(false);
-      setMessages(prev => [...prev, { 
-        role: "ai", 
-        content: `Sorry, I hit an error: ${message}`, 
-        timestamp: Date.now() 
+      setMessages(prev => [...prev, {
+        role: "ai",
+        content: `Sorry, I hit an error: ${message}`,
+        timestamp: Date.now()
       }]);
     }
   };
@@ -178,7 +153,6 @@ function GeneratePageInner() {
         });
         if (res.ok) {
           toast.success("Saved to your projects!");
-          fetchHistory();
         } else {
           toast.error("Could not save to backend.");
         }
@@ -205,15 +179,6 @@ function GeneratePageInner() {
     toast.success("HTML file downloaded!");
   };
 
-  /* ─── Load history item into view ────────────────────── */
-  const loadSavedPage = (page: SavedPage) => {
-    setData(page.content);
-    setPrompt(page.name);
-    setProjectName(page.name);
-    setViewMode("preview");
-    toast.success(`Loaded: ${page.name}`);
-  };
-
 
   return (
     <div className="relative flex h-[calc(100vh-4rem)] bg-[#020617] text-white overflow-hidden font-sans">
@@ -230,108 +195,116 @@ function GeneratePageInner() {
       <motion.aside
         initial={{ x: -320, opacity: 0 }}
         animate={{ x: isSidebarOpen ? 0 : -320, opacity: 1 }}
-        className="fixed md:relative z-40 w-80 h-full border-r border-white/10 flex flex-col bg-slate-950/80 backdrop-blur-2xl shadow-2xl transition-all"
+        className="fixed md:relative z-40 w-[320px] h-full border-r border-white/10 flex flex-col bg-[#050814]/95 backdrop-blur-3xl shadow-2xl transition-all"
       >
         {/* Header */}
-        <div className="p-5 border-b border-white/5 flex items-center justify-between bg-white/5 backdrop-blur-md">
+        <div className="p-5 border-b border-white/5 flex items-center justify-between bg-gradient-to-b from-white/5 to-transparent">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-indigo-500/20 rounded-lg flex items-center justify-center border border-indigo-500/30">
-              <Sparkles className="w-5 h-5 text-indigo-400 animate-pulse" />
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-indigo-500/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
+              <div className="relative w-9 h-9 bg-indigo-500/10 rounded-lg flex items-center justify-center border border-indigo-500/20 group-hover:border-indigo-500/40 transition-all">
+                <Sparkles className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition-transform" />
+              </div>
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-sm tracking-tight text-white">AI Workspace</span>
-              <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">v2.0 Beta</span>
+              <span className="font-bold text-[13px] tracking-tight text-white uppercase letter-spacing-1">Workspace</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[9px] text-slate-500 font-mono tracking-widest font-semibold uppercase">ONLINE</span>
+              </div>
             </div>
           </div>
-          <button 
+          <button
             onClick={() => setIsSidebarOpen(false)}
-            className="md:hidden p-2 hover:bg-white/10 rounded-lg text-slate-400 transition-colors"
+            className="md:hidden p-2 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-all"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
         </div>
 
         {/* Chat Thread */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
           <AnimatePresence initial={false}>
             {messages.length === 0 ? (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="flex flex-col items-center justify-center h-full text-center p-4"
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="flex flex-col items-center justify-center h-full text-center p-2"
               >
                 <div className="relative mb-6">
-                  <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full animate-pulse" />
-                  <Bot className="relative w-16 h-16 text-indigo-400" />
+                  <div className="absolute inset-0 bg-indigo-500/20 blur-3xl rounded-full animate-pulse" />
+                  <div className="relative w-16 h-16 bg-indigo-600/10 rounded-2xl border border-indigo-500/20 flex items-center justify-center shadow-inner">
+                    <Bot className="w-8 h-8 text-indigo-400" />
+                  </div>
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2">Ready to Build?</h3>
-                <p className="text-sm text-slate-400 max-w-[200px] mx-auto leading-relaxed">
-                  Describe your landing page idea and watch the magic happen.
+                <h3 className="text-lg font-bold text-white mb-2 tracking-tight">AI Web Architect</h3>
+                <p className="text-[13px] text-slate-400 px-6 leading-relaxed font-medium">
+                  I can generate full landing pages from a simple description.
                 </p>
-                <div className="mt-8 w-full space-y-3">
+                <div className="mt-8 w-full space-y-2.5">
                   {[
-                    "Modern SaaS Landing Page",
-                    "Minimalist Portfolio Site",
-                    "Crypto Dashboard View"
+                    "AI Software Landing Page",
+                    "Modern Portfolio Site",
+                    "E-commerce Homepage"
                   ].map((s) => (
                     <motion.button
                       key={s}
-                      whileHover={{ scale: 1.02, x: 4 }}
-                      whileTap={{ scale: 0.98 }}
+                      whileHover={{ scale: 1.01, x: 3, backgroundColor: "rgba(99, 102, 241, 0.1)" }}
+                      whileTap={{ scale: 0.99 }}
                       onClick={() => { setPrompt(s); generatePage(s); }}
-                      className="w-full p-3 text-xs text-left bg-white/5 hover:bg-indigo-500/10 border border-white/5 hover:border-indigo-500/30 rounded-xl transition-all flex items-center gap-3 group"
+                      className="w-full p-3.5 text-[12px] font-semibold text-left bg-white/[0.03] border border-white/5 hover:border-indigo-500/40 rounded-xl transition-all flex items-center justify-between group shadow-sm"
                     >
-                      <Sparkles className="w-3 h-3 text-indigo-400 group-hover:rotate-12 transition-transform" />
-                      {s}
+                      <span className="text-slate-400 group-hover:text-white transition-colors">{s}</span>
+                      <ChevronLeft className="w-3 h-3 text-indigo-500/30 group-hover:text-indigo-400 rotate-180 transition-all" />
                     </motion.button>
                   ))}
                 </div>
               </motion.div>
             ) : (
               messages.map((msg, i) => (
-                <motion.div 
+                <motion.div
                   key={i + msg.timestamp}
-                  initial={{ opacity: 0, x: msg.role === "user" ? 20 : -20, y: 10 }}
-                  animate={{ opacity: 1, x: 0, y: 0 }}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
                   className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
                 >
-                  <div className={`flex gap-3 max-w-[90%] ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg
-                      ${msg.role === "user" 
-                        ? "bg-gradient-to-br from-indigo-500 to-blue-600 rotate-3" 
-                        : "bg-gradient-to-br from-emerald-500 to-teal-600 -rotate-3"}`}>
-                      {msg.role === "user" ? <User size={14} className="text-white" /> : <Bot size={14} className="text-white" />}
+                  <div className={`flex gap-3 max-w-[95%] ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg border
+                      ${msg.role === "user"
+                        ? "bg-indigo-600/20 border-indigo-500/30 text-indigo-400"
+                        : "bg-emerald-600/20 border-emerald-500/30 text-emerald-400"}`}>
+                      {msg.role === "user" ? <User size={14} /> : <Sparkles size={14} />}
                     </div>
-                    <div className={`p-4 rounded-2xl text-[13px] leading-relaxed shadow-xl backdrop-blur-md
-                      ${msg.role === "user" 
-                        ? "bg-indigo-600/90 text-white rounded-tr-none border border-white/10" 
-                        : "bg-slate-900/90 border border-white/10 text-slate-200 rounded-tl-none"}`}>
+                    <div className={`p-3.5 rounded-2xl text-[13px] leading-relaxed shadow-xl backdrop-blur-xl border
+                      ${msg.role === "user"
+                        ? "bg-indigo-600/90 text-white rounded-tr-none border-white/10"
+                        : "bg-slate-900/90 border-white/5 text-slate-200 rounded-tl-none"}`}>
                       {msg.content}
                     </div>
                   </div>
-                  <span className="mt-1 text-[10px] text-slate-500 px-11 uppercase tracking-tighter opacity-50">
-                    {msg.role === "user" ? "You" : "Assistant"}
+                  <span className={`mt-1.5 text-[9px] font-bold uppercase tracking-widest opacity-25 ${msg.role === "user" ? "mr-10" : "ml-10"}`}>
+                    {msg.role === "user" ? "Human" : "System Core"}
                   </span>
                 </motion.div>
               ))
             )}
             {loading && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex gap-3 items-start"
+                className="flex gap-3.5 items-start"
               >
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center animate-spin-slow shadow-lg">
-                  <Bot size={14} className="text-white" />
+                <div className="w-9 h-9 rounded-[14px] bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center animate-pulse">
+                  <Loader2 size={16} className="text-emerald-400 animate-spin" />
                 </div>
-                <div className="bg-slate-900/90 border border-white/10 p-4 rounded-2xl rounded-tl-none text-[13px] text-slate-400 flex items-center gap-3 backdrop-blur-md shadow-xl">
-                  <div className="flex gap-1">
+                <div className="bg-slate-900/90 border border-white/5 p-4 rounded-2xl rounded-tl-none text-[13.5px] text-slate-400 flex flex-col gap-3 backdrop-blur-xl shadow-2xl">
+                  <div className="flex gap-1.5">
                     <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" />
                     <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.2s]" />
                     <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.4s]" />
                   </div>
-                  Crafting your landing page...
+                  <span className="font-medium">Synthesizing design components...</span>
                 </div>
               </motion.div>
             )}
@@ -339,9 +312,9 @@ function GeneratePageInner() {
         </div>
 
         {/* Input area */}
-        <div className="p-6 border-t border-white/5 bg-slate-950/50 backdrop-blur-3xl">
+        <div className="p-5 border-t border-white/5 bg-[#050814]">
           <form onSubmit={handleSendClick} className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl opacity-20 group-focus-within:opacity-40 transition-opacity blur-sm" />
+            <div className="absolute -inset-0.5 bg-indigo-500/10 rounded-2xl opacity-10 group-focus-within:opacity-30 transition-opacity blur-md" />
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
@@ -351,24 +324,26 @@ function GeneratePageInner() {
                   handleSendClick();
                 }
               }}
-              placeholder="Ask AI to build or refine..."
-              className="relative w-full bg-slate-900/80 border border-white/10 rounded-xl px-5 py-4 pr-12 text-sm text-white
-                placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500/50
-                resize-none h-14 max-h-40 transition-all custom-scrollbar"
+              placeholder="Refine or ask for changes..."
+              className="relative w-full bg-slate-900/60 border border-white/10 rounded-xl px-4 py-3.5 pr-12 text-[13px] text-white
+                placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500/40
+                resize-none h-[64px] max-h-40 transition-all custom-scrollbar font-medium"
             />
             <button
               type="submit"
               disabled={loading || !prompt.trim()}
-              className="absolute right-3 bottom-3 p-2
+              className="absolute right-2.5 bottom-2.5 p-2
                 bg-indigo-600 text-white rounded-lg shadow-lg
                 hover:bg-indigo-500 disabled:opacity-30 transition-all active:scale-95"
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-3.5 h-3.5" />
             </button>
           </form>
-          <p className="mt-3 text-[10px] text-center text-slate-500 font-medium">
-            AI can make mistakes. Review the code before deploying.
-          </p>
+          <div className="mt-3.5 flex items-center justify-center gap-1.5 text-[9px] text-slate-600 font-bold uppercase tracking-widest">
+            <div className="w-1 h-1 bg-slate-800 rounded-full" />
+            Gemini-3-Flash-preview
+            <div className="w-1 h-1 bg-slate-800 rounded-full" />
+          </div>
         </div>
       </motion.aside>
 
@@ -379,16 +354,16 @@ function GeneratePageInner() {
         <div className="h-14 border-b border-white/10 flex items-center justify-between px-6 bg-slate-900/40 backdrop-blur-2xl flex-shrink-0 z-10">
           <div className="flex items-center gap-4">
             {!isSidebarOpen && (
-              <motion.button 
+              <motion.button
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
-                onClick={() => setIsSidebarOpen(true)} 
+                onClick={() => setIsSidebarOpen(true)}
                 className="p-2 hover:bg-white/5 rounded-lg text-indigo-400 border border-indigo-500/20"
               >
                 <Sparkles className="w-4 h-4" />
               </motion.button>
             )}
-            
+
             {/* Desktop/Mobile Toggle */}
             {viewMode === "preview" && (
               <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 shadow-inner">
@@ -410,18 +385,16 @@ function GeneratePageInner() {
             <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 shadow-inner">
               <button
                 onClick={() => setViewMode("preview")}
-                className={`flex items-center gap-2 px-4 py-1.5 text-xs font-semibold rounded-lg transition-all duration-300 ${
-                  viewMode === "preview" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20" : "text-slate-400 hover:text-white"
-                }`}
+                className={`flex items-center gap-2 px-4 py-1.5 text-xs font-semibold rounded-lg transition-all duration-300 ${viewMode === "preview" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20" : "text-slate-400 hover:text-white"
+                  }`}
               >
                 <Eye className="w-3.5 h-3.5" /> Preview
               </button>
               <button
                 onClick={() => setViewMode("code")}
                 disabled={!data}
-                className={`flex items-center gap-2 px-4 py-1.5 text-xs font-semibold rounded-lg transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed ${
-                  viewMode === "code" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20" : "text-slate-400 hover:text-white"
-                }`}
+                className={`flex items-center gap-2 px-4 py-1.5 text-xs font-semibold rounded-lg transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed ${viewMode === "code" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20" : "text-slate-400 hover:text-white"
+                  }`}
               >
                 <Code className="w-3.5 h-3.5" /> Code
               </button>
@@ -464,25 +437,31 @@ function GeneratePageInner() {
             {!data && !loading && (
               <motion.div
                 key="empty"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 1.1 }}
-                className="flex flex-col items-center justify-center text-center p-10 relative"
+                className="flex flex-col items-center justify-center text-center p-10"
               >
-                <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_50%,rgba(99,102,241,0.1),transparent_70%)]" />
-                <div className="w-24 h-24 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-[2.5rem] flex items-center justify-center mb-8 border border-white/10 shadow-2xl backdrop-blur-xl rotate-12 hover:rotate-0 transition-transform duration-500">
-                  <Terminal className="w-10 h-10 text-indigo-400" />
+                <div className="relative mb-8">
+                  <div className="absolute inset-0 bg-indigo-500/10 blur-[60px] rounded-full" />
+                  <motion.div
+                    animate={{ rotate: [0, 8, -8, 0] }}
+                    transition={{ repeat: Infinity, duration: 10, ease: "easeInOut" }}
+                    className="relative w-24 h-24 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-3xl flex items-center justify-center border border-white/10 shadow-[0_0_40px_rgba(99,102,241,0.08)] backdrop-blur-2xl"
+                  >
+                    <Terminal className="w-10 h-10 text-indigo-400" />
+                  </motion.div>
                 </div>
-                <h2 className="text-3xl font-bold mb-3 tracking-tight bg-gradient-to-r from-white to-slate-500 bg-clip-text text-transparent">
-                  Workspace Ready
+                <h2 className="text-3xl font-bold mb-3 tracking-tighter text-white">
+                  Creative <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Canvas</span>
                 </h2>
-                <p className="text-slate-400 text-base max-w-sm leading-relaxed">
-                  Start a conversation with the AI to generate your next big idea. 
-                  Your creation will appear here in real-time.
+                <p className="text-slate-400 text-base max-w-sm leading-relaxed font-medium">
+                  Your intelligent workspace is ready. Type a prompt to begin generating your masterpiece.
                 </p>
-                <div className="mt-10 flex gap-4 opacity-40">
-                   <div className="flex items-center gap-2 text-xs font-mono"><Monitor size={14}/> Live Preview</div>
-                   <div className="flex items-center gap-2 text-xs font-mono"><Code size={14}/> Code Export</div>
+                <div className="mt-10 flex items-center gap-8 text-slate-700">
+                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-colors hover:text-indigo-400 cursor-default"><Monitor size={14} /> Live Preview</div>
+                  <div className="w-1 h-1 rounded-full bg-slate-800" />
+                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-colors hover:text-indigo-400 cursor-default"><Code size={14} /> Code Export</div>
                 </div>
               </motion.div>
             )}
@@ -492,16 +471,19 @@ function GeneratePageInner() {
               <motion.div
                 key="preview-container"
                 initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
-                className={`transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] bg-white shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] overflow-hidden relative
-                  ${canvasMode === "mobile" 
-                    ? "w-[375px] h-[760px] rounded-[3rem] border-[12px] border-slate-900 ring-4 ring-slate-800 shadow-indigo-500/10" 
+                className={`transition-all duration-1000 ease-[cubic-bezier(0.2,1,0.2,1)] bg-white shadow-[0_60px_120px_-20px_rgba(0,0,0,0.8)] overflow-hidden relative
+                  ${canvasMode === "mobile"
+                    ? "w-[380px] h-[780px] rounded-[3.5rem] border-[14px] border-[#0f172a] ring-2 ring-white/10 shadow-indigo-500/20 my-8"
                     : "w-full h-full"}
                 `}
               >
                 {canvasMode === "mobile" && (
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-900 rounded-b-2xl z-20 flex items-center justify-center">
-                    <div className="w-12 h-1 bg-slate-800 rounded-full" />
-                  </div>
+                  <>
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-7 bg-[#0f172a] rounded-b-3xl z-20 flex items-center justify-center">
+                      <div className="w-16 h-1.5 bg-slate-800 rounded-full" />
+                    </div>
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1.5 bg-slate-800/40 rounded-full z-20" />
+                  </>
                 )}
                 <iframe
                   srcDoc={data}
@@ -510,11 +492,19 @@ function GeneratePageInner() {
                   sandbox="allow-scripts allow-same-origin"
                 />
                 {loading && (
-                   <div className="absolute inset-0 bg-white/10 backdrop-blur-[1px] flex items-center justify-center z-10">
-                      <div className="bg-black/80 text-white px-4 py-2 rounded-full text-xs flex items-center gap-2">
-                        <Loader2 className="w-3 h-3 animate-spin" /> Stream Updating...
+                  <div className="absolute inset-0 bg-[#020617]/40 backdrop-blur-[2px] flex flex-col items-center justify-center z-30">
+                    <motion.div
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ repeat: Infinity, duration: 2 }}
+                      className="bg-[#050814]/90 border border-white/10 px-6 py-3 rounded-full text-xs font-bold text-white flex items-center gap-3 shadow-2xl"
+                    >
+                      <div className="flex gap-1">
+                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" />
+                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.2s]" />
                       </div>
-                   </div>
+                      LIVE UPDATING WORKSPACE
+                    </motion.div>
+                  </div>
                 )}
               </motion.div>
             )}
@@ -536,7 +526,7 @@ function GeneratePageInner() {
                       </div>
                       <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest ml-4">index.html</span>
                     </div>
-                    <button 
+                    <button
                       onClick={() => { navigator.clipboard.writeText(data); toast.success("Copied to clipboard!"); }}
                       className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors bg-indigo-500/10 px-2 py-1 rounded"
                     >

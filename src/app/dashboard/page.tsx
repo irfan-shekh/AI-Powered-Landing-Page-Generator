@@ -31,6 +31,7 @@ export default function DashboardPage() {
   const [pages, setPages] = useState<SavedPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   // Project name modal state
   const [showNameModal, setShowNameModal] = useState(false);
@@ -145,6 +146,7 @@ export default function DashboardPage() {
       }
     };
     fetchPages();
+    setMounted(true);
   }, []);
 
   // 🔥 3D Tilt Effect
@@ -165,7 +167,7 @@ export default function DashboardPage() {
       "perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)";
   };
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#020617]">
         <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
