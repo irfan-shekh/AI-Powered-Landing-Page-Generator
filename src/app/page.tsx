@@ -358,7 +358,7 @@ export default function Home() {
                             className="inline-flex items-center gap-3 px-10 py-5 bg-white text-indigo-600 font-bold rounded-2xl hover:bg-indigo-50 transition-all shadow-2xl shadow-indigo-900/40 active:scale-95 relative z-10"
                         >
                             <Sparkles className="w-6 h-6" />
-                            Build Your Landing Page
+                            Build Your Landing Page Now
                         </button>
                     </div>
                 </div>
