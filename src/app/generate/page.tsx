@@ -29,6 +29,8 @@ import { useSession } from "@/lib/auth-client";
 import { generateHtml } from "@/lib/generateHtml";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import PreviewIframe from "@/components/PreviewIframe";
+
 
 interface ChatMessage {
   role: "user" | "ai";
@@ -44,19 +46,16 @@ function GeneratePageInner() {
   const [saving, setSaving] = useState(false);
   const [data, setData] = useState<string>("");
   const [prompt, setPrompt] = useState("");
-  const [projectName, setProjectName] = useState("");
+  const [projectName, setProjectName] = useState(() => {
+    const nameFromQuery = searchParams?.get("name");
+    return nameFromQuery ? decodeURIComponent(nameFromQuery) : "";
+  });
   const [viewMode, setViewMode] = useState<ViewMode>("preview");
   const [canvasMode, setCanvasMode] = useState<"desktop" | "mobile">("desktop");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const { data: session } = useSession();
-
-  // Pre-fill project name from dashboard query param
-  useEffect(() => {
-    const nameFromQuery = searchParams.get("name");
-    if (nameFromQuery) setProjectName(decodeURIComponent(nameFromQuery));
-  }, [searchParams]);
 
   /* ─── Step 1: submit → directly generate ─────────────── */
   const handleSendClick = (e?: React.FormEvent) => {
@@ -485,11 +484,9 @@ function GeneratePageInner() {
                     <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1.5 bg-slate-800/40 rounded-full z-20" />
                   </>
                 )}
-                <iframe
-                  srcDoc={data}
+                <PreviewIframe
+                  htmlContent={data}
                   className="w-full h-full border-0 bg-white"
-                  title="Preview"
-                  sandbox="allow-scripts allow-same-origin"
                 />
                 {loading && (
                   <div className="absolute inset-0 bg-[#020617]/40 backdrop-blur-[2px] flex flex-col items-center justify-center z-30">

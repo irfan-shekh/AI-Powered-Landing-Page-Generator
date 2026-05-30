@@ -44,11 +44,16 @@ export async function POST(req: Request) {
 
     return result.toTextStreamResponse();
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Generation Error Detail:', error);
 
+    const errorMessage =
+      error instanceof Error && error.message
+        ? error.message
+        : 'Failed to generate landing page';
+
     return NextResponse.json(
-      { error: error.message || 'Failed to generate landing page' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

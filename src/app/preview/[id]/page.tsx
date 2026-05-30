@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { generateHtml } from "@/lib/generateHtml";
 import DownloadButton from "./DownloadButton";
+import PreviewIframe from "@/components/PreviewIframe";
 
 export default async function PreviewPage({
   params,
@@ -23,9 +24,9 @@ export default async function PreviewPage({
   }
 
   const isHtmlString = typeof page.content === 'string';
-  const data = page.content as any;
+  const data = page.content as unknown as LandingPageData;
   const isDark = isHtmlString ? true : (data?.brand?.variant === 'dark' || data?.brand?.variant === 'glassmorphism');
-  const htmlContent = isHtmlString ? data : generateHtml(data as LandingPageData, page.name);
+  const htmlContent = isHtmlString ? data as unknown as string : generateHtml(data, page.name);
 
   return (
     <div className={`relative min-h-screen overflow-hidden ${isDark ? 'bg-[#020617] text-white' : 'bg-white text-slate-900'}`}>
@@ -72,14 +73,12 @@ export default async function PreviewPage({
       {/* 🚀 CONTENT */}
       <main className="relative flex-1">
         {isHtmlString ? (
-          <iframe
-            srcDoc={htmlContent}
+          <PreviewIframe
+            htmlContent={htmlContent}
             className="w-full h-[calc(100vh-4rem)] border-0 bg-white"
-            title="Preview"
-            sandbox="allow-scripts allow-same-origin"
           />
         ) : (
-          <LandingPageRenderer data={data as LandingPageData} />
+          <LandingPageRenderer data={data} />
         )}
       </main>
     </div>
